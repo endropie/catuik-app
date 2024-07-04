@@ -1,9 +1,20 @@
 <template>
   <q-page class="column q-gutter-md" style="max-width: 1200px; margin: 0 auto">
     <q-card>
-      <q-card-section>
+      <q-card-section class="q-gutter-sm">
         <q-input v-model="count" type="number" prefix="Jumlah Team: " />
-        <q-input autogrow filled v-model="list" type="textare" label="List" />
+        <q-input
+          autofocus
+          v-for="(str, key) in list"
+          :key="key"
+          autogrow
+          filled
+          v-model="list[key]"
+          type="textare"
+          :label="`List ${key + 1}`"
+          input-style="max-height:500px"
+        />
+        <q-btn dense flat label="add List" size="sm" @click="list.push('')" />
       </q-card-section>
       <q-card-actions align="center">
         <q-btn outline color="primary" label="Cancel" @click="onReset" />
@@ -11,6 +22,38 @@
       </q-card-actions>
     </q-card>
   </q-page>
+  <q-dialog :model-value="Boolean(result)" persistent @hide="result = null">
+    <q-card style="max-width: 90vw">
+      <q-card-section class="row items-center">
+        <q-markup-table>
+          <thead>
+            <tr>
+              <th class="text-center" v-for="(e, i) in result" :key="i">
+                TEAM-{{ 1 + i }}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td
+                class="text-center"
+                v-for="(e, i) in result"
+                :key="i"
+                style="vertical-align: top"
+              >
+                <div v-for="(name, x) in e" :key="x">
+                  {{ name }}
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </q-markup-table>
+      </q-card-section>
+      <q-card-actions align="right">
+        <q-btn flat label="OK" color="primary" v-close-popup />
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
 </template>
 
 <script setup>
@@ -21,7 +64,9 @@ defineOptions({
   name: "TeamGenerate",
 });
 
-const list = ref("");
+const result = ref(null);
+
+const list = ref([""]);
 const count = ref(1);
 
 const shuffle = (array) => {
@@ -43,27 +88,42 @@ const shuffle = (array) => {
 
   return array;
 };
+
+const setGroup = (array, counter) => {
+  const v = [];
+  array.forEach((e, i) => {
+    const index = i % Number(counter);
+    if (!!!v[index]) v[index] = [];
+    v[index].push(e);
+  });
+  return v;
+};
+
 const onReset = () => {
   count.value = 1;
   list.value = "";
 };
 
 const onSetTeam = () => {
-  const winner = shuffle(
-    String(list.value)
-      .split("\n")
-      .filter((e) => Boolean(e))
-  ).filter((e, i) => i < Number(count.value));
+  const team = [];
+  list.value.forEach((str) => {
+    shuffle(
+      String(str)
+        .split("\n")
+        .filter((e) => String(e).length)
+    ).forEach((e) => team.push(e));
+  });
 
   Loading.show();
   setTimeout(() => {
     Loading.hide();
-    Dialog.create({
-      title: "The winner of Team",
-      message: Array.from(winner).join("\n"),
-      class: "Team",
-      persistent: true,
-    });
+    result.value = setGroup(team, count.value);
+    // Dialog.create({
+    //   title: "The winner of Team",
+    //   message: Array.from(team).join("\n"),
+    //   class: "Team",
+    //   persistent: true,
+    // });
   }, 2000);
 };
 </script>
